@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue';
-import { useRouter } from 'vue-router';
-import { fetchMe, logout } from '@/api/authApi';
+import { fetchMe } from '@/api/authApi';
 
-const router = useRouter();
 const user = ref<string | null>(null);
+
+const MENU_HREF = '/mobile/login/#/menu';
 
 onMounted(async () => {
   try {
@@ -15,23 +15,17 @@ onMounted(async () => {
   }
 });
 
-async function onLogout() {
-  try {
-    await logout();
-  } finally {
-    await router.push('/login');
-  }
+function onBack() {
+  window.location.assign(MENU_HREF);
 }
 </script>
 
 <template>
   <header class="app-header">
+    <button type="button" class="btn ghost back" @click="onBack">戻る</button>
     <div class="brand">講義アプリ</div>
     <div class="spacer" />
     <span v-if="user" class="user">{{ user }}</span>
-    <button v-if="user" type="button" class="btn ghost" @click="onLogout">
-      ログアウト
-    </button>
   </header>
 </template>
 
@@ -43,6 +37,9 @@ async function onLogout() {
   padding: 12px 20px;
   border-bottom: 1px solid var(--border);
   background: var(--header-bg);
+}
+.back {
+  flex-shrink: 0;
 }
 .brand {
   font-weight: 700;
