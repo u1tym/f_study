@@ -36,17 +36,17 @@ export type ChoiceInput = {
 };
 
 export async function createTopLecture(lecture_name: string): Promise<void> {
-  await studyHttp.post('/study/lectures/top', { lecture_name });
+  await studyHttp.post('/lectures/top', { lecture_name });
 }
 
 export async function listTopLectures(): Promise<TopLecture[]> {
-  const { data } = await studyHttp.get<TopLecture[]>('/study/lectures/top');
+  const { data } = await studyHttp.get<TopLecture[]>('/lectures/top');
   return data;
 }
 
 export async function listQuestions(lid: number): Promise<QuestionListResponse> {
   const { data } = await studyHttp.get<QuestionListResponse>(
-    `/study/questions/${lid}`,
+    `/questions/${lid}`,
   );
   return data;
 }
@@ -56,7 +56,7 @@ export async function getQuestion(
   qid: number,
 ): Promise<QuestionDetail> {
   const { data } = await studyHttp.get<QuestionDetail>(
-    `/study/questions/${lid}/${qid}`,
+    `/questions/${lid}/${qid}`,
   );
   return data;
 }
@@ -71,7 +71,7 @@ export async function createQuestion(body: {
   pb3: string | null;
   choices: ChoiceInput[];
 }): Promise<void> {
-  await studyHttp.post('/study/questions', body);
+  await studyHttp.post('/questions', body);
 }
 
 export async function updateQuestion(body: {
@@ -85,11 +85,11 @@ export async function updateQuestion(body: {
   pb3: string | null;
   choices: ChoiceInput[];
 }): Promise<void> {
-  await studyHttp.post('/study/questions/update', body);
+  await studyHttp.post('/questions/update', body);
 }
 
 export async function deleteQuestion(lid: number, qid: number): Promise<void> {
-  await studyHttp.post('/study/questions/delete', { lid, qid });
+  await studyHttp.post('/questions/delete', { lid, qid });
 }
 
 export async function submitAnswer(body: {
@@ -98,7 +98,7 @@ export async function submitAnswer(body: {
   answer: number[];
 }): Promise<{ result: boolean; right: number[] }> {
   const { data } = await studyHttp.post<{ result: boolean; right: number[] }>(
-    '/study/questions/answer',
+    '/questions/answer',
     body,
   );
   return data;
