@@ -587,6 +587,15 @@ h2 {
   border: 1px solid var(--border);
   background: var(--surface-2);
   overflow-x: auto;
+  text-align: left;
+}
+/* KaTeX display モードのデフォルト中央寄せを抑止 */
+.tex-preview-panel :deep(.katex-display) {
+  text-align: left;
+  margin: 0.5em 0;
+}
+.tex-preview-panel :deep(.katex) {
+  text-align: left;
 }
 .choice-tex-preview {
   margin-top: 0;
