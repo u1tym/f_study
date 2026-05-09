@@ -5,6 +5,7 @@ import {
   onUnmounted,
   reactive,
   ref,
+  watch,
 } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -14,6 +15,7 @@ import {
   type ChoiceInput,
 } from '@/api/studyApi';
 import { fileToBase64, imageSrcForApiField } from '@/utils/image';
+import KatexRender from '@/components/KatexRender.vue';
 
 type ChoiceTyp = 'plane' | 'tex' | 'none';
 
@@ -79,6 +81,30 @@ const choices = reactive<ChoiceRow[]>([
 
 const error = ref<string | null>(null);
 const busy = ref(false);
+
+/** tex 時のみ有効。設問文章の TeX プレビュー開閉 */
+const texPreviewPb = reactive({ pb1: false, pb2: false, pb3: false });
+/** 選択肢 index → TeX プレビュー表示 */
+const texPreviewChoice = reactive<Record<number, boolean>>({});
+
+watch(pb1_type, (t) => {
+  if (t !== 'tex') texPreviewPb.pb1 = false;
+});
+watch(pb2_type, (t) => {
+  if (t !== 'tex') texPreviewPb.pb2 = false;
+});
+watch(pb3_type, (t) => {
+  if (t !== 'tex') texPreviewPb.pb3 = false;
+});
+watch(
+  choices,
+  () => {
+    choices.forEach((c, i) => {
+      if (c.typ !== 'tex') texPreviewChoice[i] = false;
+    });
+  },
+  { deep: true },
+);
 
 function addChoice() {
   choices.push({
@@ -300,13 +326,30 @@ onUnmounted(() => {
         設問文章1（任意）
         <textarea v-model="pb1" rows="2" />
       </label>
-      <label>
-        設問文章1の文字列タイプ
-        <select v-model="pb1_type">
-          <option value="plane">plane（プレーン文字列）</option>
-          <option value="tex">tex（TeX）</option>
-        </select>
-      </label>
+      <div class="type-row">
+        <label class="type-grow">
+          設問文章1の文字列タイプ
+          <select v-model="pb1_type">
+            <option value="plane">plane（プレーン文字列）</option>
+            <option value="tex">tex（TeX）</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn ghost tex-preview-toggle"
+          :disabled="pb1_type !== 'tex'"
+          @click="texPreviewPb.pb1 = !texPreviewPb.pb1"
+        >
+          {{ texPreviewPb.pb1 ? 'プレビューを閉じる' : 'TeXプレビュー' }}
+        </button>
+      </div>
+      <div
+        v-if="texPreviewPb.pb1 && pb1_type === 'tex'"
+        class="tex-preview-panel"
+      >
+        <KatexRender v-if="pb1.trim()" :tex="pb1" display />
+        <p v-else class="muted tex-preview-empty">TeX の文字列を入力してください</p>
+      </div>
       <label>
         画像1（任意）
         <input type="file" accept="image/*" @change="onIm1Change" />
@@ -318,14 +361,31 @@ onUnmounted(() => {
         設問文章2（任意）
         <textarea v-model="pb2" rows="2" />
       </label>
-      <label>
-        設問文章2の文字列タイプ
-        <select v-model="pb2_type">
-          <option value="none">none（設問文章2なし）</option>
-          <option value="plane">plane（プレーン文字列）</option>
-          <option value="tex">tex（TeX）</option>
-        </select>
-      </label>
+      <div class="type-row">
+        <label class="type-grow">
+          設問文章2の文字列タイプ
+          <select v-model="pb2_type">
+            <option value="none">none（設問文章2なし）</option>
+            <option value="plane">plane（プレーン文字列）</option>
+            <option value="tex">tex（TeX）</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn ghost tex-preview-toggle"
+          :disabled="pb2_type !== 'tex'"
+          @click="texPreviewPb.pb2 = !texPreviewPb.pb2"
+        >
+          {{ texPreviewPb.pb2 ? 'プレビューを閉じる' : 'TeXプレビュー' }}
+        </button>
+      </div>
+      <div
+        v-if="texPreviewPb.pb2 && pb2_type === 'tex'"
+        class="tex-preview-panel"
+      >
+        <KatexRender v-if="pb2.trim()" :tex="pb2" display />
+        <p v-else class="muted tex-preview-empty">TeX の文字列を入力してください</p>
+      </div>
       <label>
         画像2（任意）
         <input type="file" accept="image/*" @change="onIm2Change" />
@@ -337,14 +397,31 @@ onUnmounted(() => {
         設問文章3（任意）
         <textarea v-model="pb3" rows="2" />
       </label>
-      <label>
-        設問文章3の文字列タイプ
-        <select v-model="pb3_type">
-          <option value="none">none（設問文章3なし）</option>
-          <option value="plane">plane（プレーン文字列）</option>
-          <option value="tex">tex（TeX）</option>
-        </select>
-      </label>
+      <div class="type-row">
+        <label class="type-grow">
+          設問文章3の文字列タイプ
+          <select v-model="pb3_type">
+            <option value="none">none（設問文章3なし）</option>
+            <option value="plane">plane（プレーン文字列）</option>
+            <option value="tex">tex（TeX）</option>
+          </select>
+        </label>
+        <button
+          type="button"
+          class="btn ghost tex-preview-toggle"
+          :disabled="pb3_type !== 'tex'"
+          @click="texPreviewPb.pb3 = !texPreviewPb.pb3"
+        >
+          {{ texPreviewPb.pb3 ? 'プレビューを閉じる' : 'TeXプレビュー' }}
+        </button>
+      </div>
+      <div
+        v-if="texPreviewPb.pb3 && pb3_type === 'tex'"
+        class="tex-preview-panel"
+      >
+        <KatexRender v-if="pb3.trim()" :tex="pb3" display />
+        <p v-else class="muted tex-preview-empty">TeX の文字列を入力してください</p>
+      </div>
 
       <h2>選択肢</h2>
       <div v-for="(c, idx) in choices" :key="idx" class="choice card">
@@ -359,14 +436,31 @@ onUnmounted(() => {
             削除
           </button>
         </div>
-        <label>
-          文字列タイプ
-          <select v-model="c.typ">
-            <option value="plane">plane</option>
-            <option value="tex">tex</option>
-            <option value="none">none</option>
-          </select>
-        </label>
+        <div class="type-row">
+          <label class="type-grow">
+            文字列タイプ
+            <select v-model="c.typ">
+              <option value="plane">plane</option>
+              <option value="tex">tex</option>
+              <option value="none">none</option>
+            </select>
+          </label>
+          <button
+            type="button"
+            class="btn ghost tex-preview-toggle"
+            :disabled="c.typ !== 'tex'"
+            @click="texPreviewChoice[idx] = !texPreviewChoice[idx]"
+          >
+            {{ texPreviewChoice[idx] ? 'プレビューを閉じる' : 'TeXプレビュー' }}
+          </button>
+        </div>
+        <div
+          v-if="texPreviewChoice[idx] && c.typ === 'tex'"
+          class="tex-preview-panel choice-tex-preview"
+        >
+          <KatexRender v-if="c.opt.trim()" :tex="c.opt" />
+          <p v-else class="muted tex-preview-empty">TeX の文字列を入力してください</p>
+        </div>
         <label>
           選択肢の文字列
           <input v-model="c.opt" type="text" :disabled="c.typ === 'none'" />
@@ -465,5 +559,40 @@ h2 {
   object-fit: contain;
   border-radius: 8px;
   border: 1px solid var(--border);
+}
+.type-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+.type-grow {
+  flex: 1;
+  min-width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 0 !important;
+  font-size: 0.9rem;
+}
+.tex-preview-toggle {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+.tex-preview-panel {
+  margin: -4px 0 12px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+  overflow-x: auto;
+}
+.choice-tex-preview {
+  margin-top: 0;
+}
+.tex-preview-empty {
+  margin: 0;
+  font-size: 0.9rem;
 }
 </style>
