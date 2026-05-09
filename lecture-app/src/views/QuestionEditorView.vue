@@ -1,5 +1,11 @@
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref } from 'vue';
+import {
+  computed,
+  onMounted,
+  onUnmounted,
+  reactive,
+  ref,
+} from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
   createQuestion,
@@ -7,7 +13,7 @@ import {
   updateQuestion,
   type ChoiceInput,
 } from '@/api/studyApi';
-import { fileToBase64 } from '@/utils/image';
+import { fileToBase64, imageSrcForApiField } from '@/utils/image';
 
 type ChoiceTyp = 'plane' | 'tex' | 'none';
 
@@ -15,8 +21,16 @@ type ChoiceRow = {
   typ: ChoiceTyp;
   opt: string;
   img: File | null;
+  /** API から取得した選択肢画像（base64 等）。保存時に新規ファイルがなければそのまま送る */
+  existingImg: string | null;
+  /** 新規に選んだファイルのプレビュー用 blob: URL */
+  previewUrl: string | null;
   is_right: boolean;
 };
+
+function revokeIfBlob(url: string | null | undefined) {
+  if (url?.startsWith('blob:')) URL.revokeObjectURL(url);
+}
 
 const props = defineProps<{ lid: string; qid?: string }>();
 const route = useRoute();
@@ -36,21 +50,73 @@ const im1 = ref<File | null>(null);
 const im2 = ref<File | null>(null);
 const existingIm1 = ref<string | null>(null);
 const existingIm2 = ref<string | null>(null);
+const im1PreviewUrl = ref<string | null>(null);
+const im2PreviewUrl = ref<string | null>(null);
+
+const im1DisplaySrc = computed(
+  () => im1PreviewUrl.value ?? imageSrcForApiField(existingIm1.value),
+);
+const im2DisplaySrc = computed(
+  () => im2PreviewUrl.value ?? imageSrcForApiField(existingIm2.value),
+);
 
 const choices = reactive<ChoiceRow[]>([
-  { typ: 'plane', opt: '', img: null, is_right: false },
+  {
+    typ: 'plane',
+    opt: '',
+    img: null,
+    existingImg: null,
+    previewUrl: null,
+    is_right: false,
+  },
 ]);
 
 const error = ref<string | null>(null);
 const busy = ref(false);
 
 function addChoice() {
-  choices.push({ typ: 'plane', opt: '', img: null, is_right: false });
+  choices.push({
+    typ: 'plane',
+    opt: '',
+    img: null,
+    existingImg: null,
+    previewUrl: null,
+    is_right: false,
+  });
 }
 
 function removeChoice(idx: number) {
   if (choices.length <= 1) return;
+  const row = choices[idx];
+  revokeIfBlob(row?.previewUrl);
   choices.splice(idx, 1);
+}
+
+function onIm1Change(e: Event) {
+  revokeIfBlob(im1PreviewUrl.value);
+  const f = (e.target as HTMLInputElement).files?.[0] ?? null;
+  im1.value = f;
+  im1PreviewUrl.value = f ? URL.createObjectURL(f) : null;
+}
+
+function onIm2Change(e: Event) {
+  revokeIfBlob(im2PreviewUrl.value);
+  const f = (e.target as HTMLInputElement).files?.[0] ?? null;
+  im2.value = f;
+  im2PreviewUrl.value = f ? URL.createObjectURL(f) : null;
+}
+
+function onChoiceFileChange(idx: number, e: Event) {
+  const row = choices[idx];
+  if (!row) return;
+  revokeIfBlob(row.previewUrl);
+  const f = (e.target as HTMLInputElement).files?.[0] ?? null;
+  row.img = f;
+  row.previewUrl = f ? URL.createObjectURL(f) : null;
+}
+
+function choiceDisplaySrc(c: ChoiceRow): string | null {
+  return c.previewUrl ?? imageSrcForApiField(c.existingImg);
 }
 
 function validate(): string | null {
@@ -74,6 +140,7 @@ async function buildChoicesPayload(): Promise<ChoiceInput[]> {
   for (const c of choices) {
     let imgB64: string | null = null;
     if (c.img) imgB64 = await fileToBase64(c.img);
+    else if (c.existingImg) imgB64 = c.existingImg;
     out.push({
       typ: c.typ,
       opt: c.typ === 'none' ? null : c.opt,
@@ -153,11 +220,20 @@ onMounted(async () => {
         typ: typ === 'tex' || typ === 'none' ? typ : 'plane',
         opt: o.opt ?? '',
         img: null,
+        existingImg: o.img ?? null,
+        previewUrl: null,
         is_right: o.is_right === true,
       });
     }
     if (!choices.length) {
-      choices.push({ typ: 'plane', opt: '', img: null, is_right: false });
+      choices.push({
+        typ: 'plane',
+        opt: '',
+        img: null,
+        existingImg: null,
+        previewUrl: null,
+        is_right: false,
+      });
     }
   } catch (e: unknown) {
     error.value = '設問の読み込みに失敗しました';
@@ -165,6 +241,12 @@ onMounted(async () => {
   } finally {
     busy.value = false;
   }
+});
+
+onUnmounted(() => {
+  revokeIfBlob(im1PreviewUrl.value);
+  revokeIfBlob(im2PreviewUrl.value);
+  for (const c of choices) revokeIfBlob(c.previewUrl);
 });
 </script>
 
@@ -190,16 +272,22 @@ onMounted(async () => {
       </label>
       <label>
         画像1（任意）
-        <input type="file" accept="image/*" @change="im1 = ($event.target as HTMLInputElement).files?.[0] ?? null" />
+        <input type="file" accept="image/*" @change="onIm1Change" />
       </label>
+      <div v-if="im1DisplaySrc" class="img-preview">
+        <img :src="im1DisplaySrc" alt="設問画像1" class="preview-img" />
+      </div>
       <label>
         設問文章2（任意）
         <textarea v-model="pb2" rows="2" />
       </label>
       <label>
         画像2（任意）
-        <input type="file" accept="image/*" @change="im2 = ($event.target as HTMLInputElement).files?.[0] ?? null" />
+        <input type="file" accept="image/*" @change="onIm2Change" />
       </label>
+      <div v-if="im2DisplaySrc" class="img-preview">
+        <img :src="im2DisplaySrc" alt="設問画像2" class="preview-img" />
+      </div>
       <label>
         設問文章3（任意）
         <textarea v-model="pb3" rows="2" />
@@ -235,9 +323,16 @@ onMounted(async () => {
           <input
             type="file"
             accept="image/*"
-            @change="c.img = ($event.target as HTMLInputElement).files?.[0] ?? null"
+            @change="onChoiceFileChange(idx, $event)"
           />
         </label>
+        <div v-if="choiceDisplaySrc(c)" class="img-preview">
+          <img
+            :src="choiceDisplaySrc(c)!"
+            alt="選択肢画像"
+            class="preview-img"
+          />
+        </div>
         <label class="inline">
           <input v-model="c.is_right" type="checkbox" />
           正解
@@ -307,5 +402,15 @@ onMounted(async () => {
 h2 {
   margin: 18px 0 8px;
   font-size: 1rem;
+}
+.img-preview {
+  margin: -4px 0 12px;
+}
+.preview-img {
+  max-width: min(100%, 420px);
+  max-height: 280px;
+  object-fit: contain;
+  border-radius: 8px;
+  border: 1px solid var(--border);
 }
 </style>
