@@ -9,11 +9,13 @@ export type QuestionListResponse = {
   qes: QuestionSummary[];
 };
 
+/** C-5 設問取得の選択肢。`is_right` は API 追加以降で正解フラグとして返る */
 export type ChoiceOpt = {
   cid: number;
   typ: string | null;
   opt: string | null;
   img: string | null;
+  is_right?: boolean;
 };
 
 export type QuestionDetail = {

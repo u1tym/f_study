@@ -153,7 +153,7 @@ onMounted(async () => {
         typ: typ === 'tex' || typ === 'none' ? typ : 'plane',
         opt: o.opt ?? '',
         img: null,
-        is_right: false,
+        is_right: o.is_right === true,
       });
     }
     if (!choices.length) {
