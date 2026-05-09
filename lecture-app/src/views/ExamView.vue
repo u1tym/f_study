@@ -155,6 +155,23 @@ function resetToPick() {
 function lookupOpt(cid: number): ChoiceOpt | undefined {
   return detail.value?.opt.find((o) => o.cid === cid);
 }
+
+/** C-5 `pb1_type` 省略時は plane */
+function pb1StrMode(typ: string | null | undefined): 'plane' | 'tex' {
+  return typ === 'tex' ? 'tex' : 'plane';
+}
+
+/** C-5 `pb2_type` / `pb3_type`。none・空文字は非表示。型欠落で文章のみある場合は plane */
+function pb23StrMode(
+  typ: string | null | undefined,
+  text: string | null | undefined,
+): 'plane' | 'tex' | 'hidden' {
+  const t = text?.trim() ?? '';
+  if (typ === 'tex') return t ? 'tex' : 'hidden';
+  if (typ === 'plane') return t ? 'plane' : 'hidden';
+  if (t) return 'plane';
+  return 'hidden';
+}
 </script>
 
 <template>
@@ -191,15 +208,34 @@ function lookupOpt(cid: number): ChoiceOpt | undefined {
 
       <h2 class="qtitle">{{ detail.ttl?.trim() ? detail.ttl : `設問 #${currentQid}` }}</h2>
 
-      <div v-if="detail.pb1" class="block text">{{ detail.pb1 }}</div>
+      <template v-if="detail.pb1 && pb1StrMode(detail.pb1_type) === 'tex'">
+        <div class="block"><KatexRender :tex="detail.pb1" /></div>
+      </template>
+      <div v-else-if="detail.pb1" class="block text">{{ detail.pb1 }}</div>
       <div v-if="imageSrcForApiField(detail.im1)" class="block">
         <img :src="imageSrcForApiField(detail.im1)!" alt="設問画像1" class="img" />
       </div>
-      <div v-if="detail.pb2" class="block text">{{ detail.pb2 }}</div>
+      <template v-if="pb23StrMode(detail.pb2_type, detail.pb2) === 'tex'">
+        <div class="block"><KatexRender :tex="detail.pb2!" /></div>
+      </template>
+      <div
+        v-else-if="pb23StrMode(detail.pb2_type, detail.pb2) === 'plane'"
+        class="block text"
+      >
+        {{ detail.pb2 }}
+      </div>
       <div v-if="imageSrcForApiField(detail.im2)" class="block">
         <img :src="imageSrcForApiField(detail.im2)!" alt="設問画像2" class="img" />
       </div>
-      <div v-if="detail.pb3" class="block text">{{ detail.pb3 }}</div>
+      <template v-if="pb23StrMode(detail.pb3_type, detail.pb3) === 'tex'">
+        <div class="block"><KatexRender :tex="detail.pb3!" /></div>
+      </template>
+      <div
+        v-else-if="pb23StrMode(detail.pb3_type, detail.pb3) === 'plane'"
+        class="block text"
+      >
+        {{ detail.pb3 }}
+      </div>
 
       <h3>選択肢</h3>
       <ul class="choices">

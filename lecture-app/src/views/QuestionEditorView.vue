@@ -17,6 +17,9 @@ import { fileToBase64, imageSrcForApiField } from '@/utils/image';
 
 type ChoiceTyp = 'plane' | 'tex' | 'none';
 
+type Pb1StrTyp = 'plane' | 'tex';
+type Pb23StrTyp = 'plane' | 'tex' | 'none';
+
 type ChoiceRow = {
   typ: ChoiceTyp;
   opt: string;
@@ -44,8 +47,11 @@ const title = computed(
 
 const ttl = ref('');
 const pb1 = ref('');
+const pb1_type = ref<Pb1StrTyp>('plane');
 const pb2 = ref('');
+const pb2_type = ref<Pb23StrTyp>('none');
 const pb3 = ref('');
+const pb3_type = ref<Pb23StrTyp>('none');
 const im1 = ref<File | null>(null);
 const im2 = ref<File | null>(null);
 const existingIm1 = ref<string | null>(null);
@@ -172,10 +178,23 @@ async function onSubmit() {
       ttl: ttl.value.trim() === '' ? null : ttl.value.trim(),
       /* C-1: pb1 は必須のため未入力は空文字 */
       pb1: pb1.value,
+      pb1_type: pb1_type.value,
       im1: im1b,
-      pb2: pb2.value.trim() === '' ? null : pb2.value,
+      pb2:
+        pb2_type.value === 'none'
+          ? null
+          : pb2.value.trim() === ''
+            ? null
+            : pb2.value,
+      pb2_type: pb2_type.value === 'none' ? null : pb2_type.value,
       im2: im2b,
-      pb3: pb3.value.trim() === '' ? null : pb3.value,
+      pb3:
+        pb3_type.value === 'none'
+          ? null
+          : pb3.value.trim() === ''
+            ? null
+            : pb3.value,
+      pb3_type: pb3_type.value === 'none' ? null : pb3_type.value,
       choices: await buildChoicesPayload(),
     };
 
@@ -209,8 +228,19 @@ onMounted(async () => {
     const d = await getQuestion(lidNum.value, Number(props.qid));
     ttl.value = d.ttl ?? '';
     pb1.value = d.pb1 ?? '';
+    pb1_type.value = d.pb1_type === 'tex' ? 'tex' : 'plane';
     pb2.value = d.pb2 ?? '';
+    {
+      const t = d.pb2_type;
+      pb2_type.value =
+        t === 'tex' ? 'tex' : t === 'plane' ? 'plane' : 'none';
+    }
     pb3.value = d.pb3 ?? '';
+    {
+      const t = d.pb3_type;
+      pb3_type.value =
+        t === 'tex' ? 'tex' : t === 'plane' ? 'plane' : 'none';
+    }
     existingIm1.value = d.im1;
     existingIm2.value = d.im2;
     choices.splice(0, choices.length);
@@ -271,6 +301,13 @@ onUnmounted(() => {
         <textarea v-model="pb1" rows="2" />
       </label>
       <label>
+        設問文章1の文字列タイプ
+        <select v-model="pb1_type">
+          <option value="plane">plane（プレーン文字列）</option>
+          <option value="tex">tex（TeX）</option>
+        </select>
+      </label>
+      <label>
         画像1（任意）
         <input type="file" accept="image/*" @change="onIm1Change" />
       </label>
@@ -282,6 +319,14 @@ onUnmounted(() => {
         <textarea v-model="pb2" rows="2" />
       </label>
       <label>
+        設問文章2の文字列タイプ
+        <select v-model="pb2_type">
+          <option value="none">none（設問文章2なし）</option>
+          <option value="plane">plane（プレーン文字列）</option>
+          <option value="tex">tex（TeX）</option>
+        </select>
+      </label>
+      <label>
         画像2（任意）
         <input type="file" accept="image/*" @change="onIm2Change" />
       </label>
@@ -291,6 +336,14 @@ onUnmounted(() => {
       <label>
         設問文章3（任意）
         <textarea v-model="pb3" rows="2" />
+      </label>
+      <label>
+        設問文章3の文字列タイプ
+        <select v-model="pb3_type">
+          <option value="none">none（設問文章3なし）</option>
+          <option value="plane">plane（プレーン文字列）</option>
+          <option value="tex">tex（TeX）</option>
+        </select>
       </label>
 
       <h2>選択肢</h2>

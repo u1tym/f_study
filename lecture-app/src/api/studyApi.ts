@@ -26,6 +26,12 @@ export type QuestionDetail = {
   pb2: string | null;
   im2: string | null;
   pb3: string | null;
+  /** C-5: `plane` | `tex`（省略時は plane 相当） */
+  pb1_type?: string | null;
+  /** C-5: `plane` | `tex` | null（なしは Part2 文字列なし） */
+  pb2_type?: string | null;
+  /** C-5: `plane` | `tex` | null */
+  pb3_type?: string | null;
   num: number;
   opt: ChoiceOpt[];
 };
@@ -71,6 +77,9 @@ export async function createQuestion(body: {
   pb2: string | null;
   im2: string | null;
   pb3: string | null;
+  pb1_type: 'plane' | 'tex';
+  pb2_type: 'plane' | 'tex' | null;
+  pb3_type: 'plane' | 'tex' | null;
   choices: ChoiceInput[];
 }): Promise<void> {
   await studyHttp.post('/questions', body);
@@ -85,6 +94,9 @@ export async function updateQuestion(body: {
   pb2: string | null;
   im2: string | null;
   pb3: string | null;
+  pb1_type: 'plane' | 'tex';
+  pb2_type: 'plane' | 'tex' | null;
+  pb3_type: 'plane' | 'tex' | null;
   choices: ChoiceInput[];
 }): Promise<void> {
   await studyHttp.post('/questions/update', body);
