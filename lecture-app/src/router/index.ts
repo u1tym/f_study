@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { createRouter, createWebHistory } from 'vue-router';
 import { fetchMe } from '@/api/authApi';
 
@@ -76,7 +77,11 @@ router.beforeEach(async (to) => {
   try {
     await fetchMe();
     return true;
-  } catch {
+  } catch (e: unknown) {
+    /* 401 は http インターセプターが /mobile/login/#/login へフル遷移する */
+    if (axios.isAxiosError(e) && e.response?.status === 401) {
+      return false;
+    }
     return { name: 'login', query: { redirect: to.fullPath } };
   }
 });
